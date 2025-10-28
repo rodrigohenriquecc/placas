@@ -20,9 +20,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 // ═══════════════════════ 2) Variáveis Globais
 const layers = {
-  pontos: L.layerGroup([], { pane: "overlayPane" }).addTo(mapa),
-  linhas: L.layerGroup([], { pane: "rodoviasPane" }).addTo(mapa),
-  calor: null
+  pontos: L.layerGroup([], { pane: "overlayPane" }).addTo(mapa)
 };
 
 // ═══════════════════════ 2.1) Dados km a km da malha oficial
@@ -75,8 +73,6 @@ const rodLayers = {};
 let rodLabels = [];
 
 let dados = {
-  linhasPorTrecho: [],
-  mapaDeCalor: [],
   pontosDeInteresse: []
 };
 
@@ -84,9 +80,6 @@ let dados = {
 const CSV_URLS = {
   // URLs públicas do Google Drive (compartilhado entre 4 usuários)
   // Usando formato /export?format=csv que funciona melhor
-  linhasPorTrecho: 'https://docs.google.com/spreadsheets/d/1r-7wdW8IwNhDMmGJ_QoflML-Mo1wvgAuw6ILK_LFlpo/export?format=csv',
-  mapaDeCalor: 'https://docs.google.com/spreadsheets/d/1IcM6qrF9JpZlJ6c6P1pvb8O5bhmdgDz4gKCtf8V2JUg/export?format=csv', 
-  // Atualizado: usa o sheet informado pelo usuário (export CSV com gid)
   pontosDeInteresse: 'https://docs.google.com/spreadsheets/d/1umqLjAeSZUFVF_dcfjCdYSOTxR_3GyLnHh58rInVy_Y/export?format=csv&gid=1698628532'
 };
 
@@ -326,23 +319,13 @@ async function carregarTodosDados() {
       carregarMetadadosRodovias(),
       carregarMalhaOficial()
     ]);
-    // Carrega todos os CSVs em paralelo
-    const [linhas, calor, pontos] = await Promise.all([
-      carregarCSV(CSV_URLS.linhasPorTrecho, 'Linhas por Trecho'),
-      carregarCSV(CSV_URLS.mapaDeCalor, 'Mapa de Calor'),
-      carregarCSV(CSV_URLS.pontosDeInteresse, 'Pontos de Interesse')
-    ]);
-    dados.linhasPorTrecho = linhas;
-    dados.mapaDeCalor = calor;
+    // Carrega apenas pontos de interesse
+    const pontos = await carregarCSV(CSV_URLS.pontosDeInteresse, 'Pontos de Interesse');
     dados.pontosDeInteresse = pontos;
     // Debug: mostra dados carregados
     console.log("📊 DADOS CARREGADOS:");
-    console.log("🛣️ Linhas por Trecho:", dados.linhasPorTrecho);
-    console.log("🔥 Mapa de Calor:", dados.mapaDeCalor);
     console.log("📍 Pontos de Interesse:", dados.pontosDeInteresse);
-    // Renderiza os dados no mapa
-    renderizarLinhasPorTrecho();
-    renderizarMapaDeCalor();
+    // Renderiza os pontos no mapa
     renderizarPontosDeInteresse();
     console.log("🎉 Todos os dados carregados e renderizados com sucesso!");
     mostrarNotificacao("✅ Dados atualizados com sucesso!", "success");
@@ -648,12 +631,6 @@ function adicionarControles() {
       <div style="background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <h4 style="margin: 0 0 8px 0; color: #1976d2;">📊 Camadas</h4>
         <label style="display: block; margin: 4px 0; cursor: pointer;">
-          <input type="checkbox" id="toggle-linhas" checked> 🛣️ Linhas por Trecho
-        </label>
-        <label style="display: block; margin: 4px 0; cursor: pointer;">
-          <input type="checkbox" id="toggle-calor" checked> 🔥 Mapa de Calor
-        </label>
-        <label style="display: block; margin: 4px 0; cursor: pointer;">
           <input type="checkbox" id="toggle-pontos" checked> 📍 Pontos de Interesse
         </label>
         <button id="recarregar-dados" style="margin-top: 8px; padding: 6px 12px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
@@ -673,22 +650,6 @@ function adicionarControles() {
   
   // Event listeners para os controles
   setTimeout(() => {
-    document.getElementById('toggle-linhas')?.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        mapa.addLayer(layers.linhas);
-      } else {
-        mapa.removeLayer(layers.linhas);
-      }
-    });
-    
-    document.getElementById('toggle-calor')?.addEventListener('change', (e) => {
-      if (e.target.checked && layers.calor) {
-        mapa.addLayer(layers.calor);
-      } else if (layers.calor) {
-        mapa.removeLayer(layers.calor);
-      }
-    });
-    
     document.getElementById('toggle-pontos')?.addEventListener('change', (e) => {
       if (e.target.checked) {
         mapa.addLayer(layers.pontos);
